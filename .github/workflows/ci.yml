@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy to
+        required: true
+        type: string
 
 jobs:
   build:
@@ -15,21 +20,21 @@ jobs:
       event_name: ${{ steps.info.outputs.event_name }}
     steps:
       - uses: actions/checkout@v7
-      - id: info
+      - name: Show secrets and env vars
+        env:
+          MY_TOKEN: ${{ secrets.MY_TOKEN }}
         run: |
-          echo "Triggered by: ${{ github.actor }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "actor=${{ github.actor }}" >> "$GITHUB_OUTPUT"
-          echo "event_name=${{ github.event_name }}" >> "$GITHUB_OUTPUT"
+          echo "Secret (should be masked in the log): $MY_TOKEN"
+          echo "Env var from .env file: $GREETING"
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment: test
+    environment: ${{ inputs.environment }}
     steps:
       - uses: actions/checkout@v7
       - id: deploy
         uses: ./.github/actions/deploy
         with:
-          environment: test
+          environment: ${{ inputs.environment }}
       - run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
